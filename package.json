@@ -1,0 +1,27 @@
+{
+  "name": "kifo-helper",
+  "version": "1.0.0",
+  "description": "Secondary bot to monitor up-time of Kifo Clanker",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KifoPL/kifo-helper.git"
+  },
+  "keywords": [
+    "kifo-helper"
+  ],
+  "author": "KifoPL <kifounaabi@gmail.com> (https://github.com/KifoPL)",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/KifoPL/kifo-helper/issues"
+  },
+  "homepage": "https://github.com/KifoPL/kifo-helper#readme",
+  "dependencies": {
+    "discord.js": "^12.5.3",
+    "kifo": "^1.4.1",
+    "ms": "^2.1.3"
+  }
+}
