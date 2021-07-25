@@ -4,17 +4,52 @@ const fs = require('fs');
 const kifo = require('kifo');
 const config = require('./configuration.json')
 const main = require(`./index.js`)
+const mysql = require("mysql")
 
 const client = new Discord.Client();
 client.commands = new Discord.Collection();
+var con;
 var KifoClanker = {};
 var isKifoOnline = true;
 var SupportGuild = {};
 let maintenanceEnd = new Date();
+var dbconfig = {
+	host: process.env.HOST,
+	user: process.env.USER,
+	password: process.env.PASSWORD,
+	database: "kifo_helper",
+};
+
+//Database connection
+function dbReconnect() {
+	con = mysql.createConnection(dbconfig);
+	con.connect(async function (err) {
+		if (err) {
+			main.log(err);
+			setTimeout(dbReconnect, 3000);
+		}
+		console.log(`Connected to ${process.env.HOST} MySQL DB!`);
+		module.exports.con = con;
+	});
+
+	con.on("error", function (err) {
+		main.log(err);
+		if (err.code === "PROTOCOL_CONNECTION_LOST") {
+			dbReconnect();
+		} else {
+			main.log(err, "BOT IS LIKELY SHUT DOWN")
+			throw err;
+		}
+	});
+}
+dbReconnect();
+
+//globally accessible variables
 
 module.exports.SupportGuild = SupportGuild;
 module.exports.maintenanceEnd = maintenanceEnd;
 
+// Commands loader
 const commandFiles = fs.readdirSync(`./commands`).filter(file => file.endsWith(".js"))
 for (const file of commandFiles) {
 	const command = require(`./commands/${file}`);
@@ -29,7 +64,7 @@ client.once('ready', async () => {
 	KifoClanker = await client.users.fetch("795638549730295820");
 
 	checkKifoClanker();
-	setInterval(checkKifoClanker, 1000 * 5)
+	setInterval(checkKifoClanker, 1000 * 2)
 });
 
 client.on("message", (message) => {
@@ -46,29 +81,30 @@ client.on("message", (message) => {
 async function checkKifoClanker() {
 	KifoClanker = await client.users.fetch("795638549730295820", { force: true })
 
-	let now = Date.now();
+	let now = new Date(Date.now());
 
-	if (now > maintenanceEnd) {
-		if (KifoClanker.presence.status == "online" && !isKifoOnline) {
-			isKifoOnline = true;
-			let alertChannel = SupportGuild.channels.resolve("867682507592171551")
-			alertChannel.send(`<@&867682973939138590>`, kifo.embed("<@!795638549730295820> has recovered from unexpected crash! 🥳", `Unplanned downtime alert!`)).then(msg => {
-				msg.crosspost().catch(err => main.log(err))
-			}).catch(err => main.log(err))
-		}
+	if (KifoClanker.presence.status == "online" && !isKifoOnline) {
+		isKifoOnline = true;
+		let alertChannel = SupportGuild.channels.resolve("867682507592171551")
+		alertChannel.send(`<@&867682973939138590>`, kifo.embed("<@!795638549730295820> has recovered from unexpected crash! 🥳", `Unplanned downtime alert!`)).then(msg => {
+			msg.crosspost().catch(err => main.log(err))
+		}).catch(err => main.log(err))
+	}
 
-		if (KifoClanker.presence.status == "offline" && isKifoOnline) {
-			console.log("KifoClanker is offline!!!")
-			isKifoOnline = false;
-			let alertChannel = SupportGuild.channels.resolve("867682507592171551")
-			alertChannel.send(`<@&867682973939138590>`, alertEmbed).then(msg => {
-				msg.crosspost().catch(err => main.log(err))
-			}).catch(err => main.log(err))
-		}
-	} else isKifoOnline = true;
+	if (KifoClanker.presence.status == "offline" && isKifoOnline) {
+
+		let Kifo = await client.users.fetch("289119054130839552", { force: true })
+		console.log(`KifoClanker is offline!!! ${now.toUTCString()}`)
+		isKifoOnline = false;
+		let alertChannel = SupportGuild.channels.resolve("867682507592171551")
+		let alertEmbed = kifo.embed(`<@!795638549730295820> had an unexpected crash. <@!289119054130839552> has been notified, he ${Kifo.presence.status == "offline" ? "is currently offline, so it may take some time until he fixes the bot." : "will fix the bot soon"}.`, "Unplanned downtime alert!")
+		alertChannel.send(`<@&867682973939138590>`, alertEmbed).then(msg => {
+			msg.crosspost().catch(err => main.log(err))
+		}).catch(err => main.log(err))
+	}
 }
 
-let alertEmbed = kifo.embed(`<@!795638549730295820> had an unexpected crash. <@!289119054130839552> has been notified, he will fix the bot soon.`, "Unplanned downtime alert!")
+
 
 client.login(process.env.LOGIN_TOKEN);
 
@@ -104,3 +140,9 @@ exports.log = function (log, ...args) {
 			main.log(err);
 		});
 };
+
+process.on('uncaughtException', async (err) => {
+	console.error(err)
+	await main.log(err)
+	process.exit(1);
+})
