@@ -144,5 +144,4 @@ exports.log = function (log, ...args) {
 process.on('uncaughtException', async (err) => {
 	console.error(err)
 	await main.log(err)
-	process.exit(1);
 })
