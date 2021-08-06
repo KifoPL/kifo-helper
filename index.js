@@ -154,7 +154,6 @@ client.login(process.env.LOGIN_TOKEN);
  * @returns Promise, in case something breaks
  */
 exports.log = function (log, ...args) {
-	console.log(log);
 	let channel = client.guilds
 		.resolve("822800862581751848")
 		.channels?.resolve("864112365896466432");
@@ -182,7 +181,7 @@ exports.log = function (log, ...args) {
 		});
 };
 
-// process.on('uncaughtException', async (err) => {
-// 	console.error(err)
-// 	await main.log(err)
-// })
+process.on('uncaughtException', async (err) => {
+	console.error(err)
+	await main.log(err)
+})
