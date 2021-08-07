@@ -84,7 +84,15 @@ client.once("ready", async () => {
 
 	checkKifoClanker();
 	setInterval(checkKifoClanker, 1000 * 2);
+	pingDatabase();
+	setInterval(pingDatabase, 1000 * 60 * 5);
 });
+
+function pingDatabase() {
+	con.query("SELECT Id, StartTime, EndTime, isActive FROM maintenances", [], function (err) {
+		if (err) throw err;
+	})
+}
 
 client.on("error", (err) => console.log(err));
 
